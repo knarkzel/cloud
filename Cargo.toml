@@ -1,0 +1,23 @@
+[package]
+name = "cloud"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# web assembly
+wasmer = "4.0"
+wasmer-cache = "4.0"
+wasmer-wasix = "0.9"
+
+# web server
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tokio = { version = "1.28", features = ["full"] }
+
+# axum
+axum-error = "0.2"
+axum = { git = "https://github.com/tokio-rs/axum", version = "0.6.16" }
+
+# database
+diesel = { version = "2.1", features = ["sqlite"] }
+deadpool-diesel = { version = "0.4", features = ["sqlite"] }
