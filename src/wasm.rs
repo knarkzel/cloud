@@ -1,7 +1,7 @@
 use super::*;
 use wasmer::{Instance, Module, Store};
-use wasmer_wasix::{WasiEnv, WasiFunctionEnv};
 use wasmer_cache::{Cache, FileSystemCache, Hash};
+use wasmer_wasix::{WasiEnv, WasiFunctionEnv};
 
 pub struct Engine {
     store: wasmer::Store,

@@ -1,15 +1,13 @@
-use std::net::SocketAddr;
-
-use axum::extract::Multipart;
-use axum::response::Redirect;
-use axum::routing::post;
-use axum::{extract::State, routing::get, Json, Router};
+use axum::{
+    extract::{Multipart, State},
+    response::Redirect,
+    routing::{get, post},
+    Json, Router,
+};
 use cloud::*;
 use deadpool_diesel::sqlite;
-use diesel::prelude::*;
-use diesel::QueryDsl;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use wasmer_cache::Hash;
+use std::net::SocketAddr;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
@@ -50,24 +48,10 @@ async fn wasm_create(State(pool): State<Pool>, mut multipart: Multipart) -> Resu
     // Read form
     match multipart.next_field().await? {
         Some(field) => {
-            // Read binary
-            let wasm_binary = field.bytes().await?;
-            let wasm_hash = Hash::generate(&wasm_binary).to_string();
-
             // Insert into database
-            use schema::wasm::dsl::*;
-
             let db = pool.get().await?;
-            db.interact(move |db| {
-                let new_wasm = NewWasm {
-                    hash: &wasm_hash,
-                    binary: &wasm_binary,
-                };
-                diesel::insert_into(wasm).values(new_wasm).execute(db)
-            })
-            .await
-            .unwrap()?;
-
+            let wasm_binary = field.bytes().await?;
+            database::wasm_create(db, wasm_binary).await?;
             Ok(Redirect::to("/"))
         }
         _ => Err(error!("Missing binary from form"))?,
@@ -76,13 +60,6 @@ async fn wasm_create(State(pool): State<Pool>, mut multipart: Multipart) -> Resu
 
 async fn wasm_read(State(pool): State<Pool>) -> Result<Json<Vec<Wasm>>> {
     // Fetch from database
-    use schema::wasm::dsl::*;
-
     let db = pool.get().await?;
-    let tables = db
-        .interact(|db| wasm.select(Wasm::as_select()).load(db))
-        .await
-        .unwrap()?;
-
-    Ok(Json(tables))
+    Ok(Json(database::wasm_read(db).await?))
 }
