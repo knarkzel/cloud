@@ -1,3 +1,5 @@
 /target
 /.direnv
 /.envrc
+/.env
+/database.sqlite

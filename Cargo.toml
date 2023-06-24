@@ -16,8 +16,11 @@ tokio = { version = "1.28", features = ["full"] }
 
 # axum
 axum-error = "0.2"
-axum = { git = "https://github.com/tokio-rs/axum", version = "0.6.16" }
 
 # database
+diesel_migrations = "2.1"
 diesel = { version = "2.1", features = ["sqlite"] }
 deadpool-diesel = { version = "0.4", features = ["sqlite"] }
+libsqlite3-sys = { version = "*", features = ["bundled"] } 
+serde = { version = "1.0.164", features = ["derive"] }
+axum = "0.6.18"

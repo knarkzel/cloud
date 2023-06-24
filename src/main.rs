@@ -1,66 +1,56 @@
-use axum_error::Result;
-use axum::{routing::get, Router};
-use tracing::info;
-use wasmer::{Instance, Module, Store};
-use wasmer_cache::{Cache, FileSystemCache, Hash};
-use wasmer_wasix::{WasiEnv, WasiFunctionEnv};
+use std::net::SocketAddr;
 
-struct Engine {
-    store: wasmer::Store,
-    wasi_env: WasiFunctionEnv,
-}
+use axum::{extract::State, routing::get, Json, Router};
+use cloud::*;
+use deadpool_diesel::sqlite;
+use diesel::prelude::*;
+use diesel::QueryDsl;
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
-impl Engine {
-    fn new() -> Result<Self> {
-        // Setup engine
-        let mut store = Store::default();
-        let wasi_env = WasiEnv::builder("svelterust").finalize(&mut store)?;
-        let engine = Self { store, wasi_env };
-        Ok(engine)
-    }
-
-    fn get_or_compile(&self, bytes: &[u8]) -> Result<Module> {
-        // Setup cache
-        let mut cache = FileSystemCache::new("target")?;
-        let hash = Hash::generate(bytes);
-
-        // Check if exists, otherwise compile it
-        let module = match unsafe { cache.load(&self.store, hash) } {
-            Ok(module) => module,
-            Err(_) => {
-                let module = Module::new(&self.store, bytes)?;
-                cache.store(hash, &module)?;
-                module
-            }
-        };
-        Ok(module)
-    }
-
-    fn run(&mut self, path: &str, params: &[wasmer::Value]) -> Result<Box<[wasmer::Value]>> {
-        // Compile wasm
-        let bytes = std::fs::read(path)?;
-        let module = self.get_or_compile(&bytes)?;
-
-        // Setup wasix
-        let import_object = self.wasi_env.import_object(&mut self.store, &module)?;
-        let instance = Instance::new(&mut self.store, &module, &import_object)?;
-        self.wasi_env
-            .initialize(&mut self.store, instance.clone())?;
-
-        // Get main function and call it with params
-        let function = instance.exports.get_function("_start")?;
-        let result = function.call(&mut self.store, params)?;
-        self.wasi_env.cleanup(&mut self.store, None);
-
-        Ok(result)
-    }
-}
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Logging
     tracing_subscriber::fmt::init();
-    let app = Router::new().route("/", get(|| async { "Hello, world!" }));
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await?;
-    info!("Starting server on http://0.0.0.0:8000");
-    Ok(axum::serve(listener, app).await?)
+
+    // Database
+    let manager = sqlite::Manager::new("database.sqlite", deadpool_diesel::Runtime::Tokio1);
+    let pool = sqlite::Pool::builder(manager).build()?;
+
+    // Run migrations
+    {
+        let connection = pool.get().await?;
+        connection
+            .interact(|conn| conn.run_pending_migrations(MIGRATIONS).map(|_| ()))
+            .await
+            .unwrap()
+            .unwrap();
+    }
+
+    // Create application
+    let app = Router::new()
+        .route("/wasm/list", get(wasm_list))
+        .with_state(pool);
+
+    // Run it
+    let address = SocketAddr::from(([0, 0, 0, 0], 8000));
+    info!("Starting server on http://{address}");
+    Ok(axum::Server::bind(&address)
+        .serve(app.into_make_service())
+        .await?)
+}
+
+async fn wasm_list(State(pool): State<Pool>) -> Result<Json<Vec<Wasm>>> {
+    // Fetch from database
+    use schema::wasm::dsl::*;
+
+    let db = pool.get().await?;
+    let tables = db
+        .interact(|db| wasm.select(Wasm::as_select()).load(db))
+        .await
+        .unwrap()
+        .unwrap();
+
+    Ok(Json(tables))
 }

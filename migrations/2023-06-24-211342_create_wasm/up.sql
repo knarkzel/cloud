@@ -1,0 +1,4 @@
+CREATE TABLE wasm (
+  hash TEXT PRIMARY KEY NOT NULL,
+  binary BLOB NOT NULL
+);
