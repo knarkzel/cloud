@@ -1,6 +1,6 @@
 use axum::{
     body::{boxed, Full},
-    extract::{Multipart, State},
+    extract::{Multipart, Path, State},
     http::{header, HeaderValue, Uri},
     response::Redirect,
     response::{IntoResponse, Response},
@@ -39,9 +39,10 @@ async fn main() -> Result<()> {
     let app = Router::new()
         .route("/api/wasm/read", get(wasm_read))
         .route("/api/wasm/create", post(wasm_create))
+        .route("/api/wasm/:hash", get(wasm_run))
         .route("/", get(index_handler))
         .route("/*path", get(static_handler))
-        .fallback(index_handler)
+        .fallback(error_handler)
         .with_state(pool)
         .layer(CorsLayer::new().allow_origin([
             HeaderValue::from_static("http://localhost:3000"),
@@ -58,6 +59,10 @@ async fn main() -> Result<()> {
 
 async fn index_handler() -> impl IntoResponse {
     static_handler(Uri::from_static("/index.html")).await
+}
+
+async fn error_handler() -> impl IntoResponse {
+    static_handler(Uri::from_static("/404.html")).await
 }
 
 async fn static_handler(uri: Uri) -> impl IntoResponse {
@@ -131,4 +136,12 @@ async fn wasm_read(State(pool): State<Pool>) -> Result<Json<Vec<Wasm>>> {
     // Fetch from database
     let db = pool.get().await?;
     Ok(Json(database::wasm_read(db).await?))
+}
+
+async fn wasm_run(State(pool): State<Pool>, Path(hash): Path<String>) -> Result<Json<Vec<u8>>> {
+    // Fetch from database
+    let db = pool.get().await?;
+    info!("Fetching bytes...");
+    let bytes = database::wasm_fetch(db, hash).await?;
+    Ok(Json(bytes))
 }
