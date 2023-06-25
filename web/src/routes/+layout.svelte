@@ -10,13 +10,18 @@
   <svelte:fragment slot="header">
 	<AppBar>
 	  <svelte:fragment slot="lead">
-		<strong class="text-xl uppercase">Cloud</strong>
+		<a class="text-xl font-bold uppercase" href="/">Cloud</a>
 	  </svelte:fragment>
 
-	  <svelte:fragment slot="trail">
+      <svelte:fragment slot="trail">
+        <nav>
+          <a class="btn variant-filled-secondary" href="/upload">Upload</a>
+        </nav>
 	  </svelte:fragment>
 	</AppBar>
   </svelte:fragment>
 
-  <slot />
+  <div class="p-4 container mx-auto">
+    <slot />
+  </div>
 </AppShell>

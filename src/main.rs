@@ -1,18 +1,18 @@
 use axum::{
-    extract::{Multipart, State},
-    response::Redirect,
-    routing::{get, post},
     body::{boxed, Full},
+    extract::{Multipart, State},
     http::{header, HeaderValue, StatusCode, Uri},
+    response::Redirect,
     response::{IntoResponse, Response},
+    routing::{get, post},
     Json, Router,
 };
 use cloud::*;
 use deadpool_diesel::sqlite;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use rust_embed::RustEmbed;
-use tower_http::cors::CorsLayer;
 use std::{net::SocketAddr, path::PathBuf};
+use tower_http::cors::CorsLayer;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
@@ -60,7 +60,7 @@ async fn index_handler() -> impl IntoResponse {
 }
 
 async fn static_handler(uri: Uri) -> impl IntoResponse {
-   let path = uri.path().trim_start_matches("/");
+    let path = uri.path().trim_start_matches("/");
 
     // Add .html to routes
     match PathBuf::from(path).extension() {
@@ -101,12 +101,26 @@ where
 
 async fn wasm_create(State(pool): State<Pool>, mut multipart: Multipart) -> Result<Redirect> {
     // Read form
+    let title = multipart
+        .next_field()
+        .await?
+        .ok_or(error!("Missing title"))?
+        .text()
+        .await?;
+    
+    let description = multipart
+        .next_field()
+        .await?
+        .ok_or(error!("Missing description"))?
+        .text()
+        .await?;
+
     match multipart.next_field().await? {
         Some(field) => {
             // Insert into database
             let wasm_binary = field.bytes().await?;
             let db = pool.get().await?;
-            database::wasm_create(db, wasm_binary).await?;
+            database::wasm_create(db, title, description, wasm_binary).await?;
             Ok(Redirect::to("/"))
         }
         _ => Err(error!("Missing binary from form"))?,

@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 pub struct Wasm {
     pub hash: String,
     pub binary: Vec<u8>,
+    pub title: String,
+    pub description: String,
 }
 
 #[derive(Insertable)]
@@ -15,4 +17,6 @@ pub struct Wasm {
 pub struct NewWasm<'a> {
     pub hash: &'a str,
     pub binary: &'a [u8],
+    pub title: &'a str,
+    pub description: &'a str,
 }

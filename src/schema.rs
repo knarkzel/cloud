@@ -4,5 +4,7 @@ diesel::table! {
     wasm (hash) {
         hash -> Text,
         binary -> Binary,
+        title -> Text,
+        description -> Text,
     }
 }
