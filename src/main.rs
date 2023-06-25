@@ -1,7 +1,7 @@
 use axum::{
     body::{boxed, Full},
     extract::{Multipart, State},
-    http::{header, HeaderValue, StatusCode, Uri},
+    http::{header, HeaderValue, Uri},
     response::Redirect,
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -10,7 +10,7 @@ use axum::{
 use cloud::*;
 use deadpool_diesel::sqlite;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use rust_embed::RustEmbed;
+use rust_embed::{EmbeddedFile, RustEmbed};
 use std::{net::SocketAddr, path::PathBuf};
 use tower_http::cors::CorsLayer;
 
@@ -41,6 +41,7 @@ async fn main() -> Result<()> {
         .route("/api/wasm/create", post(wasm_create))
         .route("/", get(index_handler))
         .route("/*path", get(static_handler))
+        .fallback(index_handler)
         .with_state(pool)
         .layer(CorsLayer::new().allow_origin([
             HeaderValue::from_static("http://localhost:3000"),
@@ -75,6 +76,15 @@ struct Assets;
 
 pub struct StaticFile<T>(pub T);
 
+fn render_file(path: &str, content: EmbeddedFile) -> Response {
+    let body = boxed(Full::from(content.data));
+    let mime = mime_guess::from_path(path).first_or_octet_stream();
+    Response::builder()
+        .header(header::CONTENT_TYPE, mime.as_ref())
+        .body(body)
+        .unwrap()
+}
+
 impl<T> IntoResponse for StaticFile<T>
 where
     T: Into<String>,
@@ -82,19 +92,9 @@ where
     fn into_response(self) -> Response {
         let path = self.0.into();
 
-        match Assets::get(path.as_str()) {
-            Some(content) => {
-                let body = boxed(Full::from(content.data));
-                let mime = mime_guess::from_path(path).first_or_octet_stream();
-                Response::builder()
-                    .header(header::CONTENT_TYPE, mime.as_ref())
-                    .body(body)
-                    .unwrap()
-            }
-            None => Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body(boxed(Full::from("404")))
-                .unwrap(),
+        match Assets::get(&path) {
+            Some(content) => render_file(&path, content),
+            None => render_file("404.html", Assets::get("404.html").unwrap()),
         }
     }
 }
@@ -107,7 +107,7 @@ async fn wasm_create(State(pool): State<Pool>, mut multipart: Multipart) -> Resu
         .ok_or(error!("Missing title"))?
         .text()
         .await?;
-    
+
     let description = multipart
         .next_field()
         .await?

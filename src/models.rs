@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Wasm {
     pub hash: String,
-    pub binary: Vec<u8>,
     pub title: String,
     pub description: String,
 }
