@@ -10,8 +10,10 @@
     in {
       devShell = pkgs.mkShell {
         buildInputs = [
+          pkgs.just
           pkgs.cargo
           pkgs.diesel-cli
+          pkgs.nodePackages.npm
         ];
       };
     });
