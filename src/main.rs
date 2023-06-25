@@ -2,12 +2,17 @@ use axum::{
     extract::{Multipart, State},
     response::Redirect,
     routing::{get, post},
+    body::{boxed, Full},
+    http::{header, HeaderValue, StatusCode, Uri},
+    response::{IntoResponse, Response},
     Json, Router,
 };
 use cloud::*;
 use deadpool_diesel::sqlite;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use std::net::SocketAddr;
+use rust_embed::RustEmbed;
+use tower_http::cors::CorsLayer;
+use std::{net::SocketAddr, path::PathBuf};
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations/");
 
@@ -34,7 +39,13 @@ async fn main() -> Result<()> {
     let app = Router::new()
         .route("/api/wasm/read", get(wasm_read))
         .route("/api/wasm/create", post(wasm_create))
-        .with_state(pool);
+        .route("/", get(index_handler))
+        .route("/*path", get(static_handler))
+        .with_state(pool)
+        .layer(CorsLayer::new().allow_origin([
+            HeaderValue::from_static("http://localhost:3000"),
+            HeaderValue::from_static("http://localhost:5173"),
+        ]));
 
     // Run it
     let address = SocketAddr::from(([0, 0, 0, 0], 8000));
@@ -44,13 +55,57 @@ async fn main() -> Result<()> {
         .await?)
 }
 
+async fn index_handler() -> impl IntoResponse {
+    static_handler(Uri::from_static("/index.html")).await
+}
+
+async fn static_handler(uri: Uri) -> impl IntoResponse {
+   let path = uri.path().trim_start_matches("/");
+
+    // Add .html to routes
+    match PathBuf::from(path).extension() {
+        Some(_) => StaticFile(path.to_string()),
+        None => StaticFile(format!("{path}.html")),
+    }
+}
+
+#[derive(RustEmbed)]
+#[folder = "web/build"]
+struct Assets;
+
+pub struct StaticFile<T>(pub T);
+
+impl<T> IntoResponse for StaticFile<T>
+where
+    T: Into<String>,
+{
+    fn into_response(self) -> Response {
+        let path = self.0.into();
+
+        match Assets::get(path.as_str()) {
+            Some(content) => {
+                let body = boxed(Full::from(content.data));
+                let mime = mime_guess::from_path(path).first_or_octet_stream();
+                Response::builder()
+                    .header(header::CONTENT_TYPE, mime.as_ref())
+                    .body(body)
+                    .unwrap()
+            }
+            None => Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body(boxed(Full::from("404")))
+                .unwrap(),
+        }
+    }
+}
+
 async fn wasm_create(State(pool): State<Pool>, mut multipart: Multipart) -> Result<Redirect> {
     // Read form
     match multipart.next_field().await? {
         Some(field) => {
             // Insert into database
-            let db = pool.get().await?;
             let wasm_binary = field.bytes().await?;
+            let db = pool.get().await?;
             database::wasm_create(db, wasm_binary).await?;
             Ok(Redirect::to("/"))
         }
