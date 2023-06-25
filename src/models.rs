@@ -9,6 +9,7 @@ pub struct Wasm {
     pub hash: String,
     pub title: String,
     pub description: String,
+    pub types: String,
 }
 
 #[derive(Insertable)]
@@ -18,4 +19,5 @@ pub struct NewWasm<'a> {
     pub binary: &'a [u8],
     pub title: &'a str,
     pub description: &'a str,
+    pub types: &'a str,
 }

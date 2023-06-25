@@ -4,7 +4,13 @@ use deadpool_diesel::sqlite::Connection;
 use schema::wasm::dsl::*;
 use wasmer_cache::Hash;
 
-pub async fn wasm_create(db: Connection, wasm_title: String, wasm_description: String, wasm_binary: Bytes) -> Result<()> {
+pub async fn wasm_create(
+    db: Connection,
+    wasm_title: String,
+    wasm_description: String,
+    wasm_types: String,
+    wasm_binary: Bytes,
+) -> Result<()> {
     // Insert into database
     db.interact(move |db| {
         let wasm_hash = Hash::generate(&wasm_binary).to_string();
@@ -13,6 +19,7 @@ pub async fn wasm_create(db: Connection, wasm_title: String, wasm_description: S
             binary: &wasm_binary,
             title: &wasm_title,
             description: &wasm_description,
+            types: &wasm_types,
         };
         diesel::insert_into(wasm).values(new_wasm).execute(db)
     })
@@ -22,7 +29,19 @@ pub async fn wasm_create(db: Connection, wasm_title: String, wasm_description: S
     Ok(())
 }
 
-pub async fn wasm_read(db: Connection) -> Result<Vec<Wasm>> {
+pub async fn wasm_read(db: Connection, wasm_hash: String) -> Result<Wasm> {
+    // Get items from database
+    use schema::wasm::dsl::*;
+
+    let table = db
+        .interact(|db| wasm.find(wasm_hash).select(Wasm::as_select()).first(db))
+        .await
+        .unwrap()?;
+
+    Ok(table)
+}
+
+pub async fn wasm_list(db: Connection) -> Result<Vec<Wasm>> {
     // Get items from database
     use schema::wasm::dsl::*;
 

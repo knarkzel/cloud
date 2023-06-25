@@ -6,5 +6,6 @@ diesel::table! {
         binary -> Binary,
         title -> Text,
         description -> Text,
+        types -> Text,
     }
 }

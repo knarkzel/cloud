@@ -2,10 +2,14 @@
   let types: any = {};
   let name: string;
   let selected: string;
+  let jsonTypes: string;
 
+  // Update json types when types is changed
+  $: jsonTypes = JSON.stringify(types);
+  
   function addType() {
     if (name && selected) {
-      types[name] = selected;
+      types[name.trim()] = selected;
       name = '';
     }
   }
@@ -21,9 +25,9 @@
       <input class="input" type="text" placeholder="Name" bind:value={name} />
       
 	  <select class="select" bind:value={selected}>
-	    <option value="float">Float</option>
 	    <option value="string">String</option>
 	    <option value="number">Number</option>
+	    <option value="float">Float</option>
 	  </select>
 
       <button type="submit" class="btn variant-filled-primary">
@@ -63,12 +67,14 @@
     />
   </label>
 
+  <input name="types" class="input mt-auto" type="hidden" bind:value={jsonTypes} />  
+  
   <div class="flex gap-4">
     <label class="label w-full">
       <span>File</span>
       <input name="binary" class="input" type="file" required />
     </label>
 
-    <button class="btn variant-filled-primary mt-auto" disabled={types.size === 0}>Upload</button>
+    <button class="btn variant-filled-primary mt-auto" disabled={Object.keys(types).length === 0}>Upload</button>
   </div>
 </form>

@@ -1,16 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
-  interface Wasm {
-    hash: string;
-    title: string;
-    description: string;
-  }
-
   // Fetch recently uploaded WASM files
   let data: Wasm[];
   onMount(async () => {
-    const response = await fetch("http://0.0.0.0:8000/api/wasm/read");
+    const response = await fetch("http://0.0.0.0:8000/api/wasm/list");
     data = await response.json();
   });
 </script>

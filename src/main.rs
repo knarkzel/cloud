@@ -37,7 +37,8 @@ async fn main() -> Result<()> {
 
     // Create application
     let app = Router::new()
-        .route("/api/wasm/read", get(wasm_read))
+        .route("/api/wasm/list", get(wasm_list))
+        .route("/api/wasm/read/:hash", get(wasm_read))
         .route("/api/wasm/create", post(wasm_create))
         .route("/api/wasm/:hash", get(wasm_run))
         .route("/", get(index_handler))
@@ -120,28 +121,41 @@ async fn wasm_create(State(pool): State<Pool>, mut multipart: Multipart) -> Resu
         .text()
         .await?;
 
-    match multipart.next_field().await? {
-        Some(field) => {
-            // Insert into database
-            let wasm_binary = field.bytes().await?;
-            let db = pool.get().await?;
-            database::wasm_create(db, title, description, wasm_binary).await?;
-            Ok(Redirect::to("/"))
-        }
-        _ => Err(error!("Missing binary from form"))?,
-    }
+    let types = multipart
+        .next_field()
+        .await?
+        .ok_or(error!("Missing types"))?
+        .text()
+        .await?;
+
+    let wasm_binary = multipart
+        .next_field()
+        .await?
+        .ok_or(error!("Missing binary"))?
+        .bytes()
+        .await?;
+
+    // Create in database
+    let db = pool.get().await?;
+    database::wasm_create(db, title, description, types, wasm_binary).await?;
+    Ok(Redirect::to("/"))
 }
 
-async fn wasm_read(State(pool): State<Pool>) -> Result<Json<Vec<Wasm>>> {
+async fn wasm_read(State(pool): State<Pool>, Path(hash): Path<String>) -> Result<Json<Wasm>> {
+    // Fetch single from database
+    let db = pool.get().await?;
+    Ok(Json(database::wasm_read(db, hash).await?))
+}
+
+async fn wasm_list(State(pool): State<Pool>) -> Result<Json<Vec<Wasm>>> {
     // Fetch from database
     let db = pool.get().await?;
-    Ok(Json(database::wasm_read(db).await?))
+    Ok(Json(database::wasm_list(db).await?))
 }
 
 async fn wasm_run(State(pool): State<Pool>, Path(hash): Path<String>) -> Result<Json<Vec<u8>>> {
     // Fetch from database
     let db = pool.get().await?;
-    info!("Fetching bytes...");
     let bytes = database::wasm_fetch(db, hash).await?;
     Ok(Json(bytes))
 }
