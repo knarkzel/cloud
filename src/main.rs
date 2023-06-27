@@ -5,9 +5,9 @@ use axum::{
     response::Redirect,
     response::{IntoResponse, Response},
     routing::{get, post},
-    Json, Router,
+    Json, Router, Form,
 };
-use cloud::*;
+use cloud::{*, wasm::Engine};
 use deadpool_diesel::sqlite;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use rust_embed::{EmbeddedFile, RustEmbed};
@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
         .route("/api/wasm/list", get(wasm_list))
         .route("/api/wasm/read/:hash", get(wasm_read))
         .route("/api/wasm/create", post(wasm_create))
-        .route("/api/wasm/run", post(wasm_run))
+        .route("/api/wasm/run/:hash", get(wasm_run))
         .route("/api/wasm/:hash", get(wasm_fetch))
         .route("/", get(index_handler))
         .route("/*path", get(static_handler))
@@ -165,10 +165,16 @@ async fn wasm_fetch(State(pool): State<Pool>, Path(hash): Path<String>) -> Resul
 async fn wasm_run(
     State(pool): State<Pool>,
     Path(hash): Path<String>,
-    Json(input): Json<Value>,
+    Form(input): Form<Value>,
 ) -> Result<Json<Value>> {
-    // Run wasm after fetching from database
+    // Fetch from database
     let db = pool.get().await?;
-    let output = database::wasm_run(db, hash, input).await?;
-    Ok(Json(output))
+    let bytes = database::wasm_fetch(db, hash).await?;
+    
+    // Spawn task and run wasm
+    tokio::task::spawn_blocking(move || {
+        let mut engine = Engine::new()?;
+        let output = engine.run::<Value, Value>(&bytes, &input)?;
+        Ok(Json(output))
+    }).await?
 }

@@ -1,11 +1,17 @@
 use super::*;
-use wasmer::{Instance, Module, Store};
+use byteorder::{LittleEndian, ReadBytesExt};
+use serde::{de::DeserializeOwned, Serialize};
+use wasmer::{Instance, Memory, MemoryView, Module, Store, Value, ValueType, WasmSlice};
 use wasmer_cache::{Cache, FileSystemCache, Hash};
 use wasmer_wasix::{WasiEnv, WasiFunctionEnv};
 
 pub struct Engine {
     store: wasmer::Store,
     wasi_env: WasiFunctionEnv,
+}
+
+fn read<T: ValueType>(view: &MemoryView<'_>, offset: u64, length: u64) -> Result<Vec<T>> {
+    Ok(WasmSlice::new(view, offset, length)?.read_to_vec()?)
 }
 
 impl Engine {
@@ -34,9 +40,8 @@ impl Engine {
         Ok(module)
     }
 
-    pub fn run(&mut self, path: &str, params: &[wasmer::Value]) -> Result<Box<[wasmer::Value]>> {
+    pub fn run<T: Serialize, U: DeserializeOwned>(&mut self, bytes: &[u8], input: &T) -> Result<U> {
         // Compile wasm
-        let bytes = std::fs::read(path)?;
         let module = self.get_or_compile(&bytes)?;
 
         // Setup wasix
@@ -45,11 +50,53 @@ impl Engine {
         self.wasi_env
             .initialize(&mut self.store, instance.clone())?;
 
-        // Get main function and call it with params
-        let function = instance.exports.get_function("_start")?;
-        let result = function.call(&mut self.store, params)?;
+        // Serialize data
+        let serialized = rmp_serde::to_vec(input)?;
+        let input_len = (serialized.len() as u32).to_le_bytes();
+        let input_bytes = [&input_len[..], &serialized].concat();
+
+        // Get memory from instance
+        let heap_start = match instance
+            .exports
+            .get::<wasmer::Global>("__heap_base")
+            .map(|it| it.get(&mut self.store))
+        {
+            Ok(Value::I32(heap_start)) => heap_start,
+            _ => 0x100000,
+        };
+
+        // Grow memory
+        let memory = instance.exports.get::<Memory>("memory")?;
+        let pages = (input_bytes.len() / wasmer::WASM_PAGE_SIZE) + 1;
+        memory.grow(&mut self.store, pages as u32)?;
+
+        // Write bytes into memory
+        {
+            let view = memory.view(&self.store);
+            view.write(heap_start as u64, &input_bytes)?;
+        }
+
+        // Call module and pass pointer
+        let function = instance.exports.get_function("main")?;
+        let values = function.call(&mut self.store, &[Value::I32(heap_start)])?;
         self.wasi_env.cleanup(&mut self.store, None);
 
-        Ok(result)
+        // Deserialize data from pointer
+        match &values[..] {
+            [Value::I32(pointer)] => {
+                let view = memory.view(&self.store);
+                let output_len = {
+                    let bytes = read::<u8>(&view, *pointer as u64, 4)?;
+                    bytes.as_slice().read_u32::<LittleEndian>()?
+                };
+                let output_ptr = {
+                    let bytes = read::<u8>(&view, *pointer as u64 + 4, 4)?;
+                    bytes.as_slice().read_u32::<LittleEndian>()?
+                };
+                let output_bytes = read::<u8>(&view, output_ptr as u64, output_len as u64)?;
+                Ok(rmp_serde::from_read(output_bytes.as_slice())?)
+            }
+            _ => Err(error!("Expected pointer to serialized data, got {values:#?}"))?,
+        }
     }
 }

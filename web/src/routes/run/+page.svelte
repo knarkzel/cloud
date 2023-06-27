@@ -5,11 +5,11 @@
   let data: Wasm;
   let types: Object;
   $: if (data) types = JSON.parse(data.types);
-  
+
   onMount(async () => {
     const query = new URLSearchParams(window.location.search);
     const hash = query.get("hash");
-    
+
     if (hash) {
       const response = await fetch(`http://0.0.0.0:8000/api/wasm/read/${hash}`);
       data = await response.json();
@@ -26,19 +26,19 @@
   <h1 class="h1">{data.title}</h1>
 
   <p class="mt-4">{data.description}</p>
-  
-  <form method="POST" action="http://0.0.0.0:8000/api/wasm/run?hash={data.hash}">
+
+  <form action="http://0.0.0.0:8000/api/wasm/run/{data.hash}">
     {#each Object.entries(types) as [name, value]}
       <label class="label my-4">
         <span>{capitalize(name)}</span>
         {#if value === "string"}
-          <input name="{name}" class="input" type="text" required />
+          <input {name} class="input" type="text" required />
         {/if}
         {#if value === "number"}
-          <input name="{name}" class="input" type="number" step="1" pattern="\d*" required>
+          <input {name} class="input" type="number" step="1" pattern="\d*" required />
         {/if}
         {#if value === "float"}
-          <input name="{name}" class="input" type="number" step="any" required>
+          <input {name} class="input" type="number" step="any" required />
         {/if}
       </label>
     {/each}

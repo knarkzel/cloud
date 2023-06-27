@@ -19,7 +19,7 @@
 
           <svelte:fragment slot="trail">
             <nav class="space-x-4">
-              <a class="btn variant-filled-secondary" href="/create-wasm">Create WASM file</a>
+              <a class="btn variant-filled-secondary" href="/guide">Guide</a>
               <a class="btn variant-filled-secondary" href="/upload">Upload</a>
             </nav>
           </svelte:fragment>

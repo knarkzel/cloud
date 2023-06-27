@@ -3,11 +3,18 @@ name = "cloud"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+lto = true
+strip = true
+
 [dependencies]
 # web assembly
 wasmer = "4.0"
 wasmer-cache = "4.0"
 wasmer-wasix = "0.9"
+serde_json = "1.0"
+rmp-serde = "1.1"
+byteorder = "1.4"
 
 # web server
 tracing = "0.1"
@@ -25,9 +32,10 @@ deadpool-diesel = { version = "0.4", features = ["sqlite"] }
 libsqlite3-sys = { version = "*", features = ["bundled"] } 
 
 # other
+eyre = "0.6"
 serde = { version = "1.0", features = ["derive"] }
-eyre = "0.6.8"
 tower-http = { version = "0.4.1", features = ["cors"] }
-rust-embed = "6.7.0"
-mime_guess = "2.0.4"
-serde_json = "1.0.99"
+
+# embed sveltekit
+rust-embed = "6.7"
+mime_guess = "2.0"
