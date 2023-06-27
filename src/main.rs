@@ -1,13 +1,13 @@
 use axum::{
     body::{boxed, Full},
     extract::{Multipart, Path, State},
-    http::{header, HeaderValue, Uri},
+    http::{header, Uri},
     response::Redirect,
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
-use cloud::{*, wasm::Engine};
+use cloud::{wasm::Engine, *};
 use deadpool_diesel::sqlite;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use rust_embed::{EmbeddedFile, RustEmbed};
@@ -167,12 +167,12 @@ async fn wasm_run(
     // Fetch from database
     let db = pool.get().await?;
     let bytes = database::wasm_fetch(db, hash).await?;
-    dbg!(&input);
-    
+
     // Spawn task and run wasm
     tokio::task::spawn_blocking(move || {
         let mut engine = Engine::new()?;
         let output = engine.run(&bytes, &input)?;
         Ok(Json(output))
-    }).await?
+    })
+    .await?
 }

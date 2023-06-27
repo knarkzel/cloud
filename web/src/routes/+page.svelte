@@ -33,6 +33,10 @@
       </a>
     {/each}
   </section>
+
+  {#if data.length === 0}
+	<p>You don't have any modules. Go ahead and add one!</p>
+  {/if}
 {:else}
   <h1>Loading wasm...</h1>
 {/if}
