@@ -5,7 +5,7 @@ use axum::{
     response::Redirect,
     response::{IntoResponse, Response},
     routing::{get, post},
-    Json, Router, Form,
+    Json, Router,
 };
 use cloud::{*, wasm::Engine};
 use deadpool_diesel::sqlite;
@@ -41,16 +41,13 @@ async fn main() -> Result<()> {
         .route("/api/wasm/list", get(wasm_list))
         .route("/api/wasm/read/:hash", get(wasm_read))
         .route("/api/wasm/create", post(wasm_create))
-        .route("/api/wasm/run/:hash", get(wasm_run))
+        .route("/api/wasm/run/:hash", post(wasm_run))
         .route("/api/wasm/:hash", get(wasm_fetch))
         .route("/", get(index_handler))
         .route("/*path", get(static_handler))
         .fallback(error_handler)
         .with_state(pool)
-        .layer(CorsLayer::new().allow_origin([
-            HeaderValue::from_static("http://localhost:3000"),
-            HeaderValue::from_static("http://localhost:5173"),
-        ]));
+        .layer(CorsLayer::very_permissive());
 
     // Run it
     let address = SocketAddr::from(([0, 0, 0, 0], 8000));
@@ -165,11 +162,12 @@ async fn wasm_fetch(State(pool): State<Pool>, Path(hash): Path<String>) -> Resul
 async fn wasm_run(
     State(pool): State<Pool>,
     Path(hash): Path<String>,
-    Form(input): Form<Value>,
+    Json(input): Json<Value>,
 ) -> Result<Json<Value>> {
     // Fetch from database
     let db = pool.get().await?;
     let bytes = database::wasm_fetch(db, hash).await?;
+    dbg!(&input);
     
     // Spawn task and run wasm
     tokio::task::spawn_blocking(move || {
