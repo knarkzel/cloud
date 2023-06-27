@@ -11,6 +11,7 @@ use cloud::*;
 use deadpool_diesel::sqlite;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use rust_embed::{EmbeddedFile, RustEmbed};
+use serde_json::Value;
 use std::{net::SocketAddr, path::PathBuf};
 use tower_http::cors::CorsLayer;
 
@@ -40,7 +41,8 @@ async fn main() -> Result<()> {
         .route("/api/wasm/list", get(wasm_list))
         .route("/api/wasm/read/:hash", get(wasm_read))
         .route("/api/wasm/create", post(wasm_create))
-        .route("/api/wasm/:hash", get(wasm_run))
+        .route("/api/wasm/run", post(wasm_run))
+        .route("/api/wasm/:hash", get(wasm_fetch))
         .route("/", get(index_handler))
         .route("/*path", get(static_handler))
         .fallback(error_handler)
@@ -137,8 +139,8 @@ async fn wasm_create(State(pool): State<Pool>, mut multipart: Multipart) -> Resu
 
     // Create in database
     let db = pool.get().await?;
-    database::wasm_create(db, title, description, types, wasm_binary).await?;
-    Ok(Redirect::to("/"))
+    let hash = database::wasm_create(db, title, description, types, wasm_binary).await?;
+    Ok(Redirect::to(&format!("/run?hash={hash}")))
 }
 
 async fn wasm_read(State(pool): State<Pool>, Path(hash): Path<String>) -> Result<Json<Wasm>> {
@@ -153,9 +155,20 @@ async fn wasm_list(State(pool): State<Pool>) -> Result<Json<Vec<Wasm>>> {
     Ok(Json(database::wasm_list(db).await?))
 }
 
-async fn wasm_run(State(pool): State<Pool>, Path(hash): Path<String>) -> Result<Json<Vec<u8>>> {
+async fn wasm_fetch(State(pool): State<Pool>, Path(hash): Path<String>) -> Result<Json<Vec<u8>>> {
     // Fetch from database
     let db = pool.get().await?;
     let bytes = database::wasm_fetch(db, hash).await?;
     Ok(Json(bytes))
+}
+
+async fn wasm_run(
+    State(pool): State<Pool>,
+    Path(hash): Path<String>,
+    Json(input): Json<Value>,
+) -> Result<Json<Value>> {
+    // Run wasm after fetching from database
+    let db = pool.get().await?;
+    let output = database::wasm_run(db, hash, input).await?;
+    Ok(Json(output))
 }

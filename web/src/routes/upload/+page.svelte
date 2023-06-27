@@ -19,7 +19,7 @@
 
 <form on:submit|preventDefault={addType}>
   <label class="label mt-4">
-    <span>Types</span>
+    <span>Input type layout</span>
 
     <div class="flex gap-4">
       <input class="input" type="text" placeholder="Name" bind:value={name} />

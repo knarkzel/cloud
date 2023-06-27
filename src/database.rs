@@ -10,12 +10,12 @@ pub async fn wasm_create(
     wasm_description: String,
     wasm_types: String,
     wasm_binary: Bytes,
-) -> Result<()> {
+) -> Result<String> {
     // Insert into database
+    let wasm_hash = Hash::generate(&wasm_binary);
     db.interact(move |db| {
-        let wasm_hash = Hash::generate(&wasm_binary).to_string();
         let new_wasm = NewWasm {
-            hash: &wasm_hash,
+            hash: &wasm_hash.to_string(),
             binary: &wasm_binary,
             title: &wasm_title,
             description: &wasm_description,
@@ -26,7 +26,7 @@ pub async fn wasm_create(
     .await
     .unwrap()?;
 
-    Ok(())
+    Ok(wasm_hash.to_string())
 }
 
 pub async fn wasm_read(db: Connection, wasm_hash: String) -> Result<Wasm> {

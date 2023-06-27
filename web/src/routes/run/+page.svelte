@@ -27,7 +27,7 @@
 
   <p class="mt-4">{data.description}</p>
   
-  <form method="POST" action="http://0.0.0.0:8000/api/wasm/run">
+  <form method="POST" action="http://0.0.0.0:8000/api/wasm/run?hash={data.hash}">
     {#each Object.entries(types) as [name, value]}
       <label class="label my-4">
         <span>{capitalize(name)}</span>
