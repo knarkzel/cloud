@@ -71,8 +71,8 @@
   
   <div class="flex gap-4">
     <label class="label w-full">
-      <span>File</span>
-      <input name="binary" class="input" type="file" required />
+      <span>WebAssembly file</span>
+      <input name="binary" class="input" type="file" accept=".wasm" required />
     </label>
 
     <button class="btn variant-filled-primary mt-auto" disabled={Object.keys(types).length === 0}>Upload</button>

@@ -1,5 +1,5 @@
-/target
-/.direnv
-/.envrc
-/.env
-/database.sqlite
+target
+.direnv
+.envrc
+.env
+database.sqlite

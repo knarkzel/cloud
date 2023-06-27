@@ -10,10 +10,10 @@
 </script>
 
 {#if data}
-  <section class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+  <section class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
     {#each data as wasm}
       <a href="/run/?hash={wasm.hash}">
-        <div class="shadow-lg dark:bg-surface-800 rounded">
+        <div class="shadow-lg dark:bg-surface-800 rounded hover:scale-110 duration-200">
           <img
             class="w-full"
             src="https://dummyimage.com/720x400"

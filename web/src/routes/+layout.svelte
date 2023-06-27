@@ -18,7 +18,8 @@
           </svelte:fragment>
 
           <svelte:fragment slot="trail">
-            <nav>
+            <nav class="space-x-4">
+              <a class="btn variant-filled-secondary" href="/create-wasm">Create WASM file</a>
               <a class="btn variant-filled-secondary" href="/upload">Upload</a>
             </nav>
           </svelte:fragment>
@@ -27,7 +28,7 @@
     </div>
   </svelte:fragment>
 
-  <div class="p-4 container mx-auto">
+  <div class="mt-4 p-4 container mx-auto">
     <slot />
   </div>
 </AppShell>
