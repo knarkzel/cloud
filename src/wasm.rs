@@ -1,6 +1,5 @@
 use super::*;
 use byteorder::{LittleEndian, ReadBytesExt};
-use serde::{de::DeserializeOwned, Serialize};
 use wasmer::{Instance, Memory, MemoryView, Module, Store, Value, ValueType, WasmSlice};
 use wasmer_cache::{Cache, FileSystemCache, Hash};
 use wasmer_wasix::{WasiEnv, WasiFunctionEnv};
@@ -40,7 +39,7 @@ impl Engine {
         Ok(module)
     }
 
-    pub fn run<T: Serialize, U: DeserializeOwned>(&mut self, bytes: &[u8], input: &T) -> Result<U> {
+    pub fn run(&mut self, bytes: &[u8], input: &serde_json::Value) -> Result<serde_json::Value> {
         // Compile wasm
         let module = self.get_or_compile(&bytes)?;
 
@@ -94,9 +93,22 @@ impl Engine {
                     bytes.as_slice().read_u32::<LittleEndian>()?
                 };
                 let output_bytes = read::<u8>(&view, output_ptr as u64, output_len as u64)?;
-                Ok(rmp_serde::from_read(output_bytes.as_slice())?)
+                let output = rmp_serde::from_read(output_bytes.as_slice())?;
+                unwrap_output(output)
             }
-            _ => Err(error!("Expected pointer to serialized data, got {values:#?}"))?,
+            _ => Err(error!(
+                "Expected pointer to serialized data, got {values:#?}"
+            ))?,
         }
+    }
+}
+
+fn unwrap_output(output: serde_json::Value) -> Result<serde_json::Value> {
+    match output.as_object() {
+        Some(object) if object.contains_key("Err") => {
+            Err(error!(format!("{}", object["Err"]["description"])))?
+        }
+        Some(object) if object.contains_key("Ok") => Ok(output["Ok"].clone()),
+        _ => Ok(output),
     }
 }

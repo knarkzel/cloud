@@ -174,7 +174,7 @@ async fn wasm_run(
     // Spawn task and run wasm
     tokio::task::spawn_blocking(move || {
         let mut engine = Engine::new()?;
-        let output = engine.run::<Value, Value>(&bytes, &input)?;
+        let output = engine.run(&bytes, &input)?;
         Ok(Json(output))
     }).await?
 }
