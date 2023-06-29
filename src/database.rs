@@ -11,7 +11,6 @@ pub async fn wasm_create(
     wasm_types: String,
     wasm_binary: Bytes,
 ) -> Result<String> {
-    // Insert into database
     let wasm_hash = Hash::generate(&wasm_binary);
     db.interact(move |db| {
         let new_wasm = NewWasm {
@@ -30,9 +29,6 @@ pub async fn wasm_create(
 }
 
 pub async fn wasm_read(db: Connection, wasm_hash: String) -> Result<Wasm> {
-    // Get items from database
-    use schema::wasm::dsl::*;
-
     let table = db
         .interact(|db| wasm.find(wasm_hash).select(Wasm::as_select()).first(db))
         .await
@@ -42,9 +38,6 @@ pub async fn wasm_read(db: Connection, wasm_hash: String) -> Result<Wasm> {
 }
 
 pub async fn wasm_list(db: Connection) -> Result<Vec<Wasm>> {
-    // Get items from database
-    use schema::wasm::dsl::*;
-
     let tables = db
         .interact(|db| wasm.select(Wasm::as_select()).load(db))
         .await
@@ -54,9 +47,6 @@ pub async fn wasm_list(db: Connection) -> Result<Vec<Wasm>> {
 }
 
 pub async fn wasm_fetch(db: Connection, wasm_hash: String) -> Result<Vec<u8>> {
-    // Fetch specific from database
-    use schema::wasm::dsl::*;
-
     let table: Vec<u8> = db
         .interact(|db| wasm.find(wasm_hash).select(binary).first(db))
         .await
