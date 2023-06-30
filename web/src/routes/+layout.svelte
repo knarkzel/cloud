@@ -28,7 +28,7 @@
     </div>
   </svelte:fragment>
 
-  <div class="mt-4 p-4 container mx-auto">
+  <div class="mt-4 p-4 container mx-auto pb-32">
     <slot />
   </div>
 </AppShell>
