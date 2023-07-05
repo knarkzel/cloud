@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { CodeBlock } from '@skeletonlabs/skeleton';
   
   // Get hash from url then fetch WASM from database
   let data: Wasm;

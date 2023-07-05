@@ -2,6 +2,7 @@
   let types: any = {};
   let name: string;
   let selected: string;
+  let arrayType: string;
   let jsonTypes: string;
 
   // Update json types when types is changed
@@ -9,8 +10,16 @@
   
   function addType() {
     if (name && selected) {
-      types[name.trim()] = selected;
+      if (arrayType && selected === "array") {
+        types[name.trim()] = {
+          "array": arrayType,
+        };
+      } else {
+        types[name.trim()] = selected;
+      }
       name = '';
+      selected = "boolean";
+      arrayType = "boolean";
     }
   }
 </script>
@@ -25,16 +34,31 @@
       <input class="input" type="text" placeholder="Name" bind:value={name} />
       
 	  <select class="select" bind:value={selected}>
-	    <option value="string">String</option>
+	    <option value="boolean">Boolean</option>
 	    <option value="number">Number</option>
-	    <option value="float">Float</option>
+	    <option value="string">String</option>
+	    <option value="array">Array</option>
+	    <option value="object">Object</option>
 	  </select>
 
-      <button type="submit" class="btn variant-filled-primary">
+      <button type="submit" class="btn variant-filled-primary" disabled={!name}>
         Add
       </button>
     </div>
   </label>
+
+  {#if selected === "array"}
+    <label class="label mt-4" for="">
+      <span>Array of what type?</span>
+      
+      <select class="select mt-4" bind:value={arrayType}>
+	    <option value="boolean">Boolean</option>
+	    <option value="number">Number</option>
+	    <option value="string">String</option>
+	    <option value="object">Object</option>
+	  </select>      
+    </label>
+  {/if}
 </form>
 
 {#if Object.keys(types).length > 0}
