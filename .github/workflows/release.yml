@@ -14,7 +14,9 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - run: nix develop --command just deploy
-      - uses: JamesIves/github-pages-deploy-action@4.1.4
+      - name: Upload the artifacts
+        uses: skx/github-action-publish-binaries@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          branch: gh-pages
-          folder: target/release/output
+          args: 'target/release/cloud'
