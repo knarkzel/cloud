@@ -20,6 +20,10 @@
           json[key] = 0;
         } else if (value === "string") {
           json[key] = "";
+        } else if (value === "array") {
+          json[key] = [];
+        } else if (value === "object") {
+          json[key] = {};
         }
       }
     }
