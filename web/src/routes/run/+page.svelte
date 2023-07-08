@@ -6,7 +6,7 @@
   let types: Object;
   let output: string;
   $: if (data) types = JSON.parse(data.types);
-
+  
   onMount(async () => {
     const query = new URLSearchParams(window.location.search);
     const hash = query.get("hash");
@@ -27,8 +27,19 @@
     if (event.target) {
       // Send it as json
       const form = new FormData(event.target);
-      const data = Object.fromEntries(form.entries());
+
+      // Parse form into data
+      const data: { [key: string]: any } = {}; // Use explicit type for data object
+      for (const [name, value] of form.entries()) {
+        let element = event.target.elements.item[name];
+        if (element.type === "number") {
+          data[name] = parseFloat(value);
+        } else {
+          data[name] = value;
+        }
+      }
 	  const json = JSON.stringify(data);
+      console.log(json);
       
       const response = await fetch(event.target.getAttribute('action'), {
         method: "POST",
@@ -57,8 +68,8 @@
         {#if value === "number"}
           <input {name} class="input" type="number" step="1" pattern="\d*" autocomplete="off" required />
         {/if}
-        {#if value === "float"}
-          <input {name} class="input" type="number" step="any" autocomplete="off" required  />
+        {#if value === "boolean"}
+          <input {name} class="checkbox ml-2 p-4" type="checkbox" />
         {/if}
       </label>
     {/each}

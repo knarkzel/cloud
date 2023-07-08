@@ -51,10 +51,10 @@ fn main(input: Input) -> Result<Output> {
   <CodeBlock background="bg-slate-800" language="toml" code={lib} />
 </div>
 
-<p class="mt-8">Finally, run <code>cargo add cloud-lib</code>, then modify src/lib.rs:</p>
+<p class="mt-8">Next, run <code>cargo add cloud-lib serde --features serde/derive</code>, then modify src/lib.rs:</p>
 
 <div class="mt-8">
   <CodeBlock background="bg-slate-800" language="rust" code={main} />
 </div>
 
-<p class="mt-8">Now you can build this with <code>cargo build --release --target=wasm32-wasi</code>, then publish it to Cloud under Upload.</p>
+<p class="mt-8">Now you can build this with <code>cargo build --release --target=wasm32-wasi</code>, then publish it to Cloud under <a class="anchor" href="/upload">Upload</a>.</p>
