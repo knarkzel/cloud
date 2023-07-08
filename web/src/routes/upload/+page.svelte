@@ -29,6 +29,8 @@
         <option value="boolean">Boolean</option>
 	    <option value="number">Number</option>
 	    <option value="string">String</option>
+	    <option value="array">Array</option>
+	    <option value="object">Object</option>
 	  </select>
 
       <button type="submit" class="btn variant-filled-primary" disabled={!name}>

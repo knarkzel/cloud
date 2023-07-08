@@ -23,7 +23,7 @@
         }
       }
     }
-    input = JSON.stringify(json, null, 2); 
+    input = JSON.stringify(json, null, 2);
   }
   
   onMount(async () => {
