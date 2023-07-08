@@ -11,6 +11,10 @@ just build
 
 - [ ] Functions (with Wasmer)
 - [ ] Serverless hosting (with WASIX)
-- [ ] Database (with Sqlite, something like Pocketbase)
 - [ ] Storage
+
+## Ideas
+
+- [ ] Database (with Sqlite, something like Pocketbase)
 - [ ] Authentication?
+- [ ] Logging
