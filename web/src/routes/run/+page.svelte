@@ -1,11 +1,30 @@
 <script lang="ts">
+  import { ProgressRadial } from "@skeletonlabs/skeleton";
   import { onMount } from "svelte";
   
   // Get hash from url then fetch WASM from database
+  let preElement;
   let data: Wasm;
-  let types: Object;
+  let input: string;
   let output: string;
-  $: if (data) types = JSON.parse(data.types);
+  let loading: boolean;
+  $: if (data) {
+    // Set defaults for json
+    let json = JSON.parse(data.types);
+    for (const key in json) {
+      if (json.hasOwnProperty(key)) {
+        const value = json[key];
+        if (value === "boolean") {
+          json[key] = false;
+        } else if (value === "number") {
+          json[key] = 0;
+        } else if (value === "string") {
+          json[key] = "";
+        }
+      }
+    }
+    input = JSON.stringify(json, null, 2); 
+  }
   
   onMount(async () => {
     const query = new URLSearchParams(window.location.search);
@@ -17,39 +36,18 @@
     }
   });
 
-  // Utility
-  function capitalize(input: string): string {
-    return input.charAt(0).toUpperCase() + input.slice(1);
-  }
-
   // Submit function
-  async function submit(event: SubmitEvent) {
-    if (event.target) {
-      // Send it as json
-      const form = new FormData(event.target);
-
-      // Parse form into data
-      const data: { [key: string]: any } = {}; // Use explicit type for data object
-      for (const [name, value] of form.entries()) {
-        let element = event.target.elements.item[name];
-        if (element.type === "number") {
-          data[name] = parseFloat(value);
-        } else {
-          data[name] = value;
-        }
-      }
-	  const json = JSON.stringify(data);
-      console.log(json);
-      
-      const response = await fetch(event.target.getAttribute('action'), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: json
-      });
-      output = await response.text();
-    }
+  async function submit() {
+    loading = true;
+    const response = await fetch(`http://0.0.0.0:8000/api/wasm/run/${data.hash}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: preElement.textContent
+    });
+    output = await response.text();
+    loading = false;
   }
 </script>
 
@@ -58,24 +56,17 @@
 
   <p class="mt-4">{data.description}</p>
 
-  <form action="http://0.0.0.0:8000/api/wasm/run/{data.hash}" on:submit|preventDefault={submit}>
-    {#each Object.entries(types) as [name, value]}
-      <label class="label my-4">
-        <span>{capitalize(name)}</span>
-        {#if value === "string"}
-          <input {name} class="input" type="text" autocomplete="off" required />
-        {/if}
-        {#if value === "number"}
-          <input {name} class="input" type="number" step="1" pattern="\d*" autocomplete="off" required />
-        {/if}
-        {#if value === "boolean"}
-          <input {name} class="checkbox ml-2 p-4" type="checkbox" />
-        {/if}
-      </label>
-    {/each}
-
-    <button class="btn variant-filled-primary mt-2">Run</button>
-  </form>
+  {#if input}
+    <pre contenteditable="true" class="my-4" bind:this={preElement}>{input}</pre>
+  {/if}
+  
+  <button class="btn variant-filled-primary mt-2 w-20" on:click={submit}>
+    {#if loading}
+	  <ProgressRadial width="w-6" stroke="200" />
+    {:else}
+      Run
+    {/if}
+  </button>
 
   {#if output}
     <pre class="mt-8 pre bg-surface-700">{output}</pre>

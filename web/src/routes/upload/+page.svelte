@@ -26,7 +26,7 @@
       <input class="input" type="text" placeholder="Name" bind:value={name} />
       
 	  <select class="select" bind:value={selected}>
-	    <option value="boolean">Boolean</option>
+        <option value="boolean">Boolean</option>
 	    <option value="number">Number</option>
 	    <option value="string">String</option>
 	  </select>
