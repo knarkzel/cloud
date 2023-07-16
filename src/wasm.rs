@@ -24,7 +24,7 @@ impl Engine {
 
     fn get_or_compile(&self, bytes: &[u8]) -> Result<Module> {
         // Setup cache
-        let mut cache = FileSystemCache::new("target")?;
+        let mut cache = FileSystemCache::new("cache")?;
         let hash = Hash::generate(bytes);
 
         // Check if exists, otherwise compile it

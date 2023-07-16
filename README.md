@@ -9,8 +9,8 @@ just build
 
 ## Roadmap
 
-- [ ] Functions (with Wasmer)
-- [ ] Serverless hosting (with WASIX)
+- [x] Functions (with Wasmer)
+- [ ] Serverless websites (with WASIX)
 - [ ] Storage
 
 ## Ideas

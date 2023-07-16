@@ -8,4 +8,5 @@ init:
 build: init
     cd web/ && npm run build
     cargo build --release
-    ls -lh target/release/cloud
+    zip cloud.zip target/release/cloud
+    ls -lh target/release/cloud cloud.zip
