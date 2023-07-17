@@ -1,6 +1,8 @@
 # Self-Hosted Cloud using Wasmer 4.0
 
-![Cloud Logo](https://github.com/knarkzel/cloud/blob/master/web/static/thunder.png)
+<p align="center">
+  <img src="https://github.com/knarkzel/cloud/blob/master/web/static/thunder.png" width="350">
+</p>
 
 This project provides a functional, self-hosted cloud solution using
 [Wasmer 4.0](https://wasmer.io/). This enables you to deploy and run
